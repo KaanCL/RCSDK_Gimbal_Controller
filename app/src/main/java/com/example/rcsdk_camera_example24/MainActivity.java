@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private int pitch = 1000;
 
     private int preZoom = 0;
+    private int prePoz = 0;
 
     public Handler handler = new Handler();
 
@@ -66,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
                     infoliveyaw.postValue(t1[12]);
                     infolivepitch.postValue(t1[13]);
                     infoliveAux.postValue(t1[10]);
+                    infoliveSwitch.postValue(t1[5]);
         }
     };
 
@@ -73,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
     private final MutableLiveData<Integer> infoliveyaw = new MutableLiveData<Integer>();
     private final MutableLiveData<Integer> infolivepitch = new MutableLiveData<Integer>();
     private final MutableLiveData<Integer> infoliveAux = new MutableLiveData<Integer>();
+    private final MutableLiveData<Integer> infoliveSwitch = new MutableLiveData<Integer>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,6 +111,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onChanged(Integer i) {
                 controlCamera(i,2);
+            }
+        });
+
+        infoliveSwitch.observe(this, new Observer<Integer>() {
+            @Override
+            public void onChanged(Integer i) {
+                controlCamera(i,3);
             }
         });
 
@@ -147,10 +157,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         }
-
         getChannels();
-
-
     }
 
     private CommListener getCommListener(int type, String tag) {
@@ -205,7 +212,6 @@ public class MainActivity extends AppCompatActivity {
 
                     float value = joyStickMap(v,proc) ;
 
-
                     switch (proc){
                         case 0:
 
@@ -214,23 +220,33 @@ public class MainActivity extends AppCompatActivity {
                                 System.out.println("YAW: " + value);}
                             break;
                         case 1:
-
                             if (value != 0) {
                                 c12Camera.controlPitch(value);
                                 System.out.println("PITCH: " + value);}
                             break;
                         case 2:
-
                             int intValue = (int)value;
+
                               if(intValue != preZoom){
                                 c12Camera.setZoomRatios(intValue,null);
                                 System.out.println("ZOOM RATIO: " + intValue);
                                 preZoom = intValue;
                             }
                             break;
+                        case 3:
+                            if(v != prePoz) {
+                                if (v == 2000) {
+                                    c12Camera.akey(AKey.TOP);
+                                } else if (v == 1000) {
+                                    c12Camera.akey(AKey.DOWN);
+                                } else {
+                                    c12Camera.akey(AKey.MID);
+                                }
+                                prePoz = (int)v;
+                            }
+                            break;
 
                     }
-
 
                 }
 
@@ -256,6 +272,10 @@ public class MainActivity extends AppCompatActivity {
             case 2:
                 outputMin = 0;
                 outputMax = 4;
+                break;
+            default:
+                outputMin = 0;
+                outputMax = 0;
         }
 
         return (inputValue - inputMin) * (outputMax - outputMin) / (inputMax - inputMin) + outputMin;

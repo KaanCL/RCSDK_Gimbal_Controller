@@ -50,8 +50,8 @@ public class MainActivity extends AppCompatActivity {
 
     private int yaw = 1000;
     private int pitch = 1000;
-    private int preyaw = 1000;
-    private int prePitch = 1000;
+
+    private int preZoom = 0;
 
     public Handler handler = new Handler();
 
@@ -65,14 +65,14 @@ public class MainActivity extends AppCompatActivity {
                     infoliveData.postValue(Arrays.toString(t1));
                     infoliveyaw.postValue(t1[12]);
                     infolivepitch.postValue(t1[13]);
-
-
+                    infoliveAux.postValue(t1[10]);
         }
     };
 
     private final MutableLiveData<String> infoliveData = new MutableLiveData<String>();
     private final MutableLiveData<Integer> infoliveyaw = new MutableLiveData<Integer>();
     private final MutableLiveData<Integer> infolivepitch = new MutableLiveData<Integer>();
+    private final MutableLiveData<Integer> infoliveAux = new MutableLiveData<Integer>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,24 +83,31 @@ public class MainActivity extends AppCompatActivity {
         pitchText = findViewById(R.id.pitch);
         videoView = findViewById(R.id.videoView);
 
-       /* infoliveData.observe(this, new Observer<String>() {
+        infoliveData.observe(this, new Observer<String>() {
             @Override
             public void onChanged(String s) {
                 chanels.setText(s);
             }
-        });*/
+        });
         infoliveyaw.observe(this, new Observer<Integer>() {
             @Override
             public void onChanged(Integer i) {
                 yawText.setText(String.valueOf(i));
-                controlCamera(i,true);
+                controlCamera(i,0);
             }
         });
         infolivepitch.observe(this, new Observer<Integer>() {
             @Override
             public void onChanged(Integer i) {
                 pitchText.setText(String.valueOf(i));
-                controlCamera(i,false);
+                controlCamera(i,1);
+            }
+        });
+
+        infoliveAux.observe(this, new Observer<Integer>() {
+            @Override
+            public void onChanged(Integer i) {
+                controlCamera(i,2);
             }
         });
 
@@ -192,43 +199,68 @@ public class MainActivity extends AppCompatActivity {
         KeyManager.INSTANCE.listen(RemoteControllerKey.INSTANCE.getKeyH16Channels(), keyH16ChannelsListener);
     }
 
-    private void controlCamera(float v , boolean yawPitch){
+    private void controlCamera(float v , int proc){
 
                 if (c12Camera!=null){
 
-                    float value = joyStickMap(v,yawPitch);
+                    float value = joyStickMap(v,proc) ;
 
-                    if(yawPitch) {
-                        if (value != 0) {
-                            c12Camera.controlYaw(value);
-                            System.out.println("YAW: " + value);}
+
+                    switch (proc){
+                        case 0:
+
+                            if (value != 0) {
+                                c12Camera.controlYaw(value);
+                                System.out.println("YAW: " + value);}
+                            break;
+                        case 1:
+
+                            if (value != 0) {
+                                c12Camera.controlPitch(value);
+                                System.out.println("PITCH: " + value);}
+                            break;
+                        case 2:
+
+                            int intValue = (int)value;
+                              if(intValue != preZoom){
+                                c12Camera.setZoomRatios(intValue,null);
+                                System.out.println("ZOOM RATIO: " + intValue);
+                                preZoom = intValue;
+                            }
+                            break;
+
                     }
-                    else{
-                          if(value!=0) {
-                              c12Camera.controlPitch(value);
-                              System.out.println("PITCH: " + value);}
-                    }
+
+
                 }
 
         };
 
 
-    private static float joyStickMap(float inputValue , boolean yawPitch ){
+    private static float joyStickMap(float inputValue , int proc){
 
         float inputMin = 1000 , inputMax = 2000 ,  outputMin = 0 , outputMax = 0;
 
 
-        if(yawPitch){
-            outputMin = -150f;
-            outputMax = 150f;
-        }
-        else{
-            outputMin = -90f;
-            outputMax = 90f;
+        switch(proc){
+
+            case 0:
+                outputMin = -150f;
+                outputMax = 150f;
+                break;
+
+            case 1:
+                outputMin = -90f;
+                outputMax = 90f;
+                break;
+            case 2:
+                outputMin = 0;
+                outputMax = 4;
         }
 
         return (inputValue - inputMin) * (outputMax - outputMin) / (inputMax - inputMin) + outputMin;
 
     }
+
 
 }
